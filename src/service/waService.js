@@ -4929,15 +4929,23 @@ export async function handleGatewayMessage(msg) {
   }
 }
 
-registerClientMessageHandler(waClient, "wwebjs", handleMessage);
-registerClientMessageHandler(waUserClient, "wwebjs-user", handleUserMessage);
-registerClientMessageHandler(waGatewayClient, "wwebjs-gateway", handleGatewayMessage);
+// DISABLED: Interactive message handling registration
+// registerClientMessageHandler(waClient, "wwebjs", handleMessage);
+// registerClientMessageHandler(waUserClient, "wwebjs-user", handleUserMessage);
+// registerClientMessageHandler(waGatewayClient, "wwebjs-gateway", handleGatewayMessage);
 
 if (shouldInitWhatsAppClients) {
-  console.log('[WA] Attaching message event listeners to WhatsApp clients...');
+  console.log('[WA] Interactive message event listeners DISABLED - wabot menu removed');
+  console.log('[WA] WhatsApp clients are initialized for automated cron jobs only');
   
+  // NOTE: All interactive menu handlers have been disabled.
+  // The WhatsApp clients (waClient, waUserClient, waGatewayClient) are still
+  // initialized and ready for automated tasks (cron jobs, notifications, etc.)
+  // but they will NOT respond to user messages.
+  
+  /*
+  // DISABLED: Interactive message handling
   waClient.on('message', (msg) => {
-    // ALWAYS log message reception at waService level (critical for diagnosing reception issues)
     console.log(`[WA-SERVICE] waClient 'message' event received - from=${msg.from}`);
     if (process.env.WA_DEBUG_LOGGING === 'true') {
       console.log(`[WA-SERVICE] waClient message details - body=${msg.body?.substring(0, 50) || '(empty)'}`);
@@ -4953,7 +4961,6 @@ if (shouldInitWhatsAppClients) {
       }
       return;
     }
-    // ALWAYS log message reception at waService level (critical for diagnosing reception issues)
     console.log(`[WA-SERVICE] waUserClient 'message' event received - from=${msg.from}`);
     if (process.env.WA_DEBUG_LOGGING === 'true') {
       console.log(`[WA-SERVICE] waUserClient message details - body=${msg.body?.substring(0, 50) || '(empty)'}`);
@@ -4962,7 +4969,6 @@ if (shouldInitWhatsAppClients) {
   });
 
   waGatewayClient.on('message', (msg) => {
-    // ALWAYS log message reception at waService level (critical for diagnosing reception issues)
     console.log(`[WA-SERVICE] waGatewayClient 'message' event received - from=${msg.from}`);
     if (process.env.WA_DEBUG_LOGGING === 'true') {
       console.log(`[WA-SERVICE] waGatewayClient message details - body=${msg.body?.substring(0, 50) || '(empty)'}`);
@@ -4971,9 +4977,9 @@ if (shouldInitWhatsAppClients) {
   });
 
   console.log('[WA] Message event listeners attached successfully.');
-  // Verify listeners are actually attached
   console.log(`[WA] Listener counts - waClient: ${waClient.listenerCount('message')}, waUserClient: ${waUserClient.listenerCount('message')}, waGatewayClient: ${waGatewayClient.listenerCount('message')}`);
   console.log('[WA] ** IMPORTANT: If you send a message to the bot and see NO logs, the client may not be connected or authenticated. Check for "Client ready event received" logs above. **');
+  */
 
 
   const clientsToInit = [
