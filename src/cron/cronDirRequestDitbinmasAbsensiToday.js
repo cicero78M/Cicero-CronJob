@@ -1,5 +1,5 @@
 import { sendDebug } from '../middleware/debugHandler.js';
-import { runDirRequestAction } from '../handler/menu/dirRequestHandlers.js';
+import { runDirRequestAction } from '../service/dirRequestService.js';
 import {
   minPhoneDigitLength,
   normalizeUserWhatsAppId,

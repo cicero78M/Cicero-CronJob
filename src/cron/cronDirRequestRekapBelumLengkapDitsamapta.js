@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import waClient from '../service/waService.js';
-import { formatRekapBelumLengkapDirektorat } from '../handler/menu/dirRequestHandlers.js';
+import { formatRekapBelumLengkapDirektorat } from '../service/dirRequestService.js';
 import { scheduleCronJob } from '../utils/cronScheduler.js';
 import { safeSendMessage } from '../utils/waHelper.js';
 import { sendDebug } from '../middleware/debugHandler.js';
