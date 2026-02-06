@@ -614,11 +614,12 @@ const missingChromeRemediationHint =
   "Install Google Chrome or Chromium, atau set WA_PUPPETEER_EXECUTABLE_PATH untuk menggunakan Chrome yang sudah terinstall.";
 
 function hasChromeExecutable(client) {
+  const DEFAULT_EXECUTABLE_PATH = "default";
   const executablePath =
     typeof client?.getPuppeteerExecutablePath === "function"
       ? client.getPuppeteerExecutablePath()
       : client?.puppeteerExecutablePath;
-  if (!executablePath || executablePath === "default") {
+  if (!executablePath || executablePath === DEFAULT_EXECUTABLE_PATH) {
     return false;
   }
   try {
@@ -718,10 +719,11 @@ export function getWaReadinessSummary() {
     shouldInitWhatsAppClients,
     clients: clients.map(({ label, client }) => {
       const state = getClientReadinessState(client, label);
+      const DEFAULT_EXECUTABLE_PATH = "default";
       const puppeteerExecutablePath =
         typeof client?.getPuppeteerExecutablePath === "function"
           ? client.getPuppeteerExecutablePath()
-          : client?.puppeteerExecutablePath || "default";
+          : client?.puppeteerExecutablePath || DEFAULT_EXECUTABLE_PATH;
       const fatalError = client?.fatalInitError || null;
       return {
         label,
@@ -907,7 +909,7 @@ export async function waitForAllMessageQueues() {
 
 export function sendGatewayMessage(jid, text) {
   if (!waGatewayClient) {
-    throw new Error("[WA-GATEWAY] Gateway client not initialized");
+    throw new Error("[WA-GATEWAY] Gateway client not initialized for automated notifications");
   }
   return waGatewayClient.sendMessage(jid, text);
 }

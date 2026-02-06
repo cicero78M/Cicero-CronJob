@@ -159,9 +159,11 @@ export async function formatRekapUserData(clientId, roleFlag = null) {
     const polresIdSet = new Set(polresIds.map((id) => id.toLowerCase()));
     const clientIdLower = clientId.toLowerCase();
 
+    // Collect unique IDs (client ID + polres IDs + group IDs)
     const seen = new Set();
     const allIds = [];
-    const addUniqueId = (id) => {
+    
+    const addId = (id) => {
       const lower = (id || '').toLowerCase();
       if (!seen.has(lower)) {
         seen.add(lower);
@@ -169,9 +171,9 @@ export async function formatRekapUserData(clientId, roleFlag = null) {
       }
     };
 
-    addUniqueId(clientIdLower);
-    polresIds.forEach((id) => addUniqueId(id));
-    Object.keys(groups).forEach((id) => addUniqueId(id));
+    addId(clientIdLower);
+    polresIds.forEach((id) => addId(id));
+    Object.keys(groups).forEach((id) => addId(id));
 
     const entries = await Promise.all(
       allIds.map(async (cid) => {
