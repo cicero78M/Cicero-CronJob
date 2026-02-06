@@ -21,6 +21,8 @@ import {
 import {
   formatToWhatsAppId,
   isUnsupportedVersionError,
+  safeSendMessage,
+  getAdminWAIds,
 } from "../utils/waHelper.js";
 
 dotenv.config();
@@ -59,6 +61,13 @@ export function buildDashboardPremiumRequestMessage(request) {
     ? "sudah upload bukti transfer"
     : "belum upload bukti transfer";
   const paymentProofLink = request.proof_url || "Belum upload bukti";
+  const numberFormatter = new Intl.NumberFormat("id-ID");
+  const formatCurrencyId = (value) => {
+    if (value === null || value === undefined) return "-";
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) return String(value);
+    return `Rp ${numberFormatter.format(numeric)}`;
+  };
   const lines = [
     "📢 permintaan akses premium",
     "",
@@ -68,16 +77,25 @@ export function buildDashboardPremiumRequestMessage(request) {
     `- Dashboard User ID: ${request.dashboard_user_id || "-"}`,
     "",
     "Detail permintaan:",
-    `- Client: ${request.client_id || "-"}`,
-    `- Dashboard: ${request.dashboard_id || "-"}`,
-    `- Paket: ${request.paket || "-"}`,
-    `- Status: ${paymentProofStatus}`,
+    `- Tier: ${request.premium_tier || "-"}`,
+    `- Client ID: ${request.client_id || "-"}`,
+    `- Username (request): ${commandUsername}`,
+    `- Dashboard User ID (request): ${request.dashboard_user_id || "-"}`,
+    `- Request Token (request): ${request.request_token || "-"}`,
+    `- Status Bukti Transfer: ${paymentProofStatus}`,
     "",
-    "Action:",
+    "Detail transfer:",
+    `- Bank: ${request.bank_name || "-"}`,
+    `- Nomor Rekening: ${request.account_number || "-"}`,
+    `- Nama Pengirim: ${request.sender_name || "-"}`,
+    `- Jumlah Transfer: ${formatCurrencyId(request.transfer_amount)}`,
+    `- Bukti Transfer: ${paymentProofLink}`,
+    "",
+    `Request ID: ${request.request_id || "-"}`,
+    "",
+    "Kirim:",
     `approve ${commandUsername}`,
     `deny ${commandUsername}`,
-    "",
-    `Bukti Transfer: ${paymentProofLink}`,
   ];
   return lines.join("\n");
 }
@@ -595,9 +613,27 @@ function registerClientReadiness(client, label) {
 const missingChromeRemediationHint =
   "Install Google Chrome or Chromium, atau set WA_PUPPETEER_EXECUTABLE_PATH untuk menggunakan Chrome yang sudah terinstall.";
 
+function hasChromeExecutable(client) {
+  const executablePath =
+    typeof client?.getPuppeteerExecutablePath === "function"
+      ? client.getPuppeteerExecutablePath()
+      : client?.puppeteerExecutablePath;
+  if (!executablePath || executablePath === "default") {
+    return false;
+  }
+  try {
+    return fs.existsSync(executablePath);
+  } catch {
+    return false;
+  }
+}
+
 function isFatalMissingChrome(client) {
   const fatalError = client?.fatalInitError;
-  return fatalError?.type === "missing-chrome";
+  if (fatalError?.type === "missing-chrome") {
+    return !hasChromeExecutable(client);
+  }
+  return false;
 }
 
 function getInitReadinessIssue({ label, client }) {
@@ -683,7 +719,9 @@ export function getWaReadinessSummary() {
     clients: clients.map(({ label, client }) => {
       const state = getClientReadinessState(client, label);
       const puppeteerExecutablePath =
-        client?.puppeteerExecutablePath || "default";
+        typeof client?.getPuppeteerExecutablePath === "function"
+          ? client.getPuppeteerExecutablePath()
+          : client?.puppeteerExecutablePath || "default";
       const fatalError = client?.fatalInitError || null;
       return {
         label,
@@ -710,6 +748,20 @@ export function getWaReadinessSummary() {
   };
 }
 
+function flushPendingMessages(client) {
+  const state = getClientReadinessState(client);
+  if (state.pendingMessages.length) {
+    console.log(
+      `[${state.label}] Processing ${state.pendingMessages.length} deferred message(s)`
+    );
+    state.pendingMessages.splice(0).forEach((pending) => {
+      console.log(
+        `[${state.label}] Deferred message from ${pending?.from || "unknown"} discarded (no handler in cronjob-only mode)`
+      );
+    });
+  }
+}
+
 function markClientReady(client, source = "ready-event") {
   const state = getClientReadinessState(client);
   if (state.ready) {
@@ -718,6 +770,10 @@ function markClientReady(client, source = "ready-event") {
   state.ready = true;
   state.awaitingQrScan = false;
   state.lastDisconnectReason = null;
+  if (state.lastAuthFailureAt) {
+    state.lastAuthFailureAt = null;
+    state.lastAuthFailureMessage = null;
+  }
   console.log(`[${state.label}] Client ready (source: ${source})`);
   clearAuthenticatedFallbackTimer(client);
   markFallbackCheckCompleted(client);
@@ -725,6 +781,10 @@ function markClientReady(client, source = "ready-event") {
     resolve();
   }
   state.readyResolvers = [];
+  flushPendingMessages(client);
+  if (client === waClient) {
+    flushAdminNotificationQueue();
+  }
 }
 
 export function queueAdminNotification(message) {
@@ -732,14 +792,29 @@ export function queueAdminNotification(message) {
 }
 
 export function flushAdminNotificationQueue() {
-  const messages = adminNotificationQueue.splice(0);
-  return messages;
+  if (!adminNotificationQueue.length) return;
+  console.log(
+    `[WA] Sending ${adminNotificationQueue.length} queued admin notification(s)`
+  );
+  adminNotificationQueue.splice(0).forEach((msg) => {
+    for (const wa of getAdminWAIds()) {
+      safeSendMessage(waClient, wa, msg);
+    }
+  });
 }
 
 async function waitForClientReady(client, timeoutMs = null) {
   const state = getClientReadinessState(client);
   if (state.ready) {
     return;
+  }
+  if (await inferClientReadyState(client, state.label, "pre-wait")) {
+    return;
+  }
+  if (isFatalMissingChrome(client)) {
+    throw new Error(
+      `[${state.label}] Cannot wait for client ready: Chrome executable not found. ${missingChromeRemediationHint}`
+    );
   }
   const effectiveTimeoutMs = timeoutMs || getClientReadyTimeoutMs(client);
   return new Promise((resolve, reject) => {
@@ -844,6 +919,7 @@ export function sendGatewayMessage(jid, text) {
 async function reconnectClient(client) {
   const state = getClientReadinessState(client);
   console.log(`[${state.label}] Attempting to reconnect client`);
+  resetFallbackReadyState(client);
   if (typeof client?.connect !== "function") {
     console.warn(`[${state.label}] connect method not available`);
     return;
