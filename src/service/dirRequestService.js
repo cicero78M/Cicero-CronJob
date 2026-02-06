@@ -161,7 +161,7 @@ export async function formatRekapUserData(clientId, roleFlag = null) {
 
     const seen = new Set();
     const allIds = [];
-    const addId = (id) => {
+    const addUniqueId = (id) => {
       const lower = (id || '').toLowerCase();
       if (!seen.has(lower)) {
         seen.add(lower);
@@ -169,9 +169,9 @@ export async function formatRekapUserData(clientId, roleFlag = null) {
       }
     };
 
-    addId(clientIdLower);
-    polresIds.forEach((id) => addId(id));
-    Object.keys(groups).forEach((id) => addId(id));
+    addUniqueId(clientIdLower);
+    polresIds.forEach((id) => addUniqueId(id));
+    Object.keys(groups).forEach((id) => addUniqueId(id));
 
     const entries = await Promise.all(
       allIds.map(async (cid) => {
