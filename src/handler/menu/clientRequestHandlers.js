@@ -4499,4 +4499,6 @@ export {
   BULK_STATUS_HEADER_REGEX,
 };
 
+export const respondComplaint_message = clientRequestHandlers.respondComplaint_message;
+
 export default clientRequestHandlers;

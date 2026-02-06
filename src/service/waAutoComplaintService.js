@@ -1,4 +1,4 @@
-import { clientRequestHandlers } from '../handler/menu/clientRequestHandlers.js';
+import { clientRequestHandlers, respondComplaint_message } from '../handler/menu/clientRequestHandlers.js';
 import { parseComplaintMessage } from './complaintService.js';
 import { normalizeUserId } from '../utils/utilsHelper.js';
 
@@ -138,7 +138,7 @@ export async function handleComplaintMessageIfApplicable({
     respondComplaint: {},
   });
   const updatedSession = getSession(chatId);
-  await clientRequestHandlers.respondComplaint_message(
+  await respondComplaint_message(
     updatedSession,
     chatId,
     text,

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import waClient from "../service/waService.js";
-import { formatRekapUserData, formatExecutiveSummary } from "../handler/menu/dirRequestHandlers.js";
+import { formatRekapUserData, formatExecutiveSummary } from "../service/dirRequestService.js";
 import { safeSendMessage, normalizeUserWhatsAppId, minPhoneDigitLength } from "../utils/waHelper.js";
 import { sendDebug } from "../middleware/debugHandler.js";
 import { scheduleCronJob } from "../utils/cronScheduler.js";
